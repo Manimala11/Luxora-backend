@@ -6,7 +6,7 @@ const createOrder = async (req, res) => {
         if (req.user.role === "admin") {
             return res.status(403).json({ success: false, message: "Admins cannot create orders" });
         }
-        const { shippingInfo, orderItems} = req.body;
+        const { shippingInfo, orderItems } = req.body;
         if (!orderItems || !orderItems.length) {
             return res.status(400).json({ success: false, message: 'Order items cannot be empty' })
         }
@@ -19,14 +19,43 @@ const createOrder = async (req, res) => {
                 return res.status(404).json({ success: false, message: `Product not found: ${item.productId}` });
             }
 
-            if (product.stock < item.quantity) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Insufficient stock for product: ${product.title}. Available: ${product.stock}`,
-                })
-            }
 
-            product.stock -= item.quantity;
+            // if (product.stock < item.quantity) {
+            //     return res.status(400).json({
+            //         success: false,
+            //         message: `Insufficient stock for product: ${product.title}. Available: ${product.stock}`,
+            //     })
+            // }
+
+            // product.stock -= item.quantity;
+
+            if (item.selectedSize && product.sizeStock.length > 0) {
+                const sizeObj = product.sizeStock.find(s => s.size === item.selectedSize);
+
+                if (!sizeObj) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Size ${item.selectedSize} not available for ${product.title}`
+                    });
+                }
+
+                if (sizeObj.stock < item.quantity) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Only ${sizeObj.stock} left for size ${item.selectedSize} in ${product.title}`
+                    });
+                }
+                sizeObj.stock -= item.quantity;
+            }
+            else {
+                if (product.stock < item.quantity) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Only ${product.stock} left in stock for ${product.title}`
+                    });
+                }
+                product.stock -= item.quantity;
+            }
             await product.save({ validateBeforeSave: false });
 
 
@@ -35,6 +64,7 @@ const createOrder = async (req, res) => {
                 name: product.title,
                 price: product.price,
                 quantity: item.quantity,
+                selectedSize: item.selectedSize || null,
                 image: product.images?.[0] || ""
             })
         }
@@ -86,7 +116,7 @@ const updateOrder = async (req, res) => {
         const { orderId } = req.params;
         const { orderStatus } = req.body;
 
-         if (!orderStatus) return res.status(400).json({ success: false, message: "No order status provided" });
+        if (!orderStatus) return res.status(400).json({ success: false, message: "No order status provided" });
 
         const order = await Order.findById(orderId);
         if (!order) {
@@ -114,10 +144,16 @@ const updateOrder = async (req, res) => {
             order.paymentInfo = "Cancelled";
 
             for (const item of order.orderItems) {
-                const product = await Product.findById(item.product._id);
+                const productId = item.product._id || item.product;
+                const product = await Product.findById(productId);
                 if (product) {
-                    product.stock += item.quantity;
-                    await product.save({ validateBeforeSave: false })
+                    if (item.selectedSize && product.sizeStock.length > 0) {
+                        const sizeObj = product.sizeStock.find(s => s.size === item.selectedSize);
+                        if (sizeObj) sizeObj.stock += item.quantity;
+                    } else {
+                        product.stock += item.quantity;
+                    }
+                    await product.save({ validateBeforeSave: false });
                 }
             }
         }
@@ -143,9 +179,16 @@ const deleteOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: "Delivered orders cannot be deleted" });
         }
         for (const item of order.orderItems) {
-            const product = await Product.findById(item.product._id);
+            const productId = item.product._id || item.product;
+            const product = await Product.findById(productId);
             if (product) {
-                product.stock += item.quantity;
+                if (item.selectedSize && product.sizeStock.length > 0) {
+                    const sizeObj = product.sizeStock.find(s => s.size === item.selectedSize);
+                    if (sizeObj) sizeObj.stock += item.quantity;
+                } else {
+                    product.stock += item.quantity;
+                }
+
                 await product.save({ validateBeforeSave: false });
             }
         }

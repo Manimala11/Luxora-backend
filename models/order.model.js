@@ -59,6 +59,10 @@ const orderSchema = new mongoose.Schema(
                     min: 1,
                     default: 1
                 },
+                selectedSize: {
+                     type: String,
+                      default: null 
+                    },
                 image: {
                     type: String,
                     required: true

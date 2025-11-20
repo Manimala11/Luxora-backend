@@ -32,7 +32,6 @@ const productSchema = new mongoose.Schema(
 
     stock: {
       type: Number,
-      required: true,
       max: 9999,
       default: 1
     },
@@ -49,7 +48,14 @@ const productSchema = new mongoose.Schema(
       default: 0
     },
 
-    size: [String],
+  // size: [String],
+
+    sizeStock: [
+      {
+        size: {type: String},
+        stock: {type: Number, default: 0}
+      }
+    ],
 
     tags: [String],
 

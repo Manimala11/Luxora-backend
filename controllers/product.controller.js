@@ -5,8 +5,8 @@ const Order = require('../models/order.model')
 
 const getProducts = async (req, res) => {
     try {
-        
-        const products = await Product.find().sort({createdAt: -1});
+
+        const products = await Product.find().sort({ createdAt: -1 });
         res.status(200).json({ products });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -18,7 +18,7 @@ const getProduct = async (req, res) => {
         const { id } = req.params;
         const product = await Product.findById(id);
         if (!product) return res.status(404).json({ message: "no product found" });
-        
+
         res.status(200).json({ product });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -31,8 +31,8 @@ const createProduct = async (req, res) => {
             return res.status(403).json({ message: "Only admin can create products" });
         }
 
-        const { title, description, category, price, stock, tags, size } = req.body;  
-        if (!title || !description || !category || !price || !stock) {
+        const { title, description, category, price, stock, tags, sizeStock } = req.body;
+        if (!title || !description || !category || !price) {
             return res.status(400).json({ message: "all required fields must be provided" })
         }
         if (!req.files || req.files.length === 0) {
@@ -47,22 +47,46 @@ const createProduct = async (req, res) => {
             fs.unlinkSync(file.path);
         }
         const parsedTags = tags ? JSON.parse(tags) : []
-        const parsedSize = size ? JSON.parse(size) : []
-       
-       const product = await Product.create({
-            ...req.body,
+        let parsedSizeStock = [];
+        if (sizeStock) {
+            try {
+
+                parsedSizeStock = JSON.parse(sizeStock);
+            }
+            catch (e) {
+                return res.status(400).json({ message: "Invalid sizeStock format" });
+            }
+        }
+
+        for (const item of parsedSizeStock) {
+            if (!item.size || item.stock == null) {
+                return res.status(400).json({ message: "Invalid size or stock value" });
+            }
+        }
+
+        const finalStock = parsedSizeStock.length > 0 ? 0 : Number(stock) || 0;
+
+        const product = await Product.create({
+            title,
+            description,
+            category,
+            price,
             images: imageUrls,
             tags: parsedTags,
-            size: parsedSize
+            stock: finalStock,
+            sizeStock: parsedSizeStock,
+            createdBy: req.user._id,
+
         });
         res.status(201).json({ product });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 }
 const updateProduct = async (req, res) => {
     try {
-         if (req.user.role !== "admin") {
+        if (req.user.role !== "admin") {
             return res.status(403).json({ message: "Only admin can update products" });
         }
         const { id } = req.params;
@@ -71,8 +95,20 @@ const updateProduct = async (req, res) => {
             return res.status(404).json({ message: "product not found" })
         }
 
-        
+
         const updateProduct = { ...req.body }
+
+        if (updateProduct.sizeStock) {
+            try {
+                updateProduct.sizeStock = JSON.parse(updateProduct.sizeStock);
+            } catch (err) {
+                return res.status(400).json({ message: "Invalid sizeStock format" });
+            }
+        }
+        if (updateProduct.stock !== undefined) {
+            updateProduct.stock = Number(updateProduct.stock);
+        }
+
         if (req.files && req.files.length > 0) {
             const imageUrls = [];
             for (const file of req.files) {
@@ -84,6 +120,9 @@ const updateProduct = async (req, res) => {
             }
             updateProduct.images = imageUrls;
         }
+        else {
+            updateProduct.images = existingProduct.images;
+        }
         const updatedProduct = await Product.findByIdAndUpdate(id, updateProduct, { new: true, })
         res.status(200).json({ updatedProduct });
     } catch (err) {
@@ -92,7 +131,7 @@ const updateProduct = async (req, res) => {
 }
 const deleteProduct = async (req, res) => {
     try {
-         if (req.user.role !== "admin") {
+        if (req.user.role !== "admin") {
             return res.status(403).json({ message: "Only admin can update products" });
         }
         const { id } = req.params;
@@ -100,7 +139,7 @@ const deleteProduct = async (req, res) => {
         if (!product) {
             return res.status(404).json({ message: "product not found" })
         }
-        
+
         await product.deleteOne();
         res.status(200).json({ message: "product deleted successfully!" });
     } catch (err) {
@@ -134,8 +173,8 @@ const UpdateReview = async (req, res) => {
         if (existingReview) {
             existingReview.rating = rating || existingReview.rating;
             existingReview.comment = comment || existingReview.comment;
-        } 
-        else{
+        }
+        else {
             product.reviews.push({
                 userId: req.user._id,
                 name: req.user.name,
@@ -147,22 +186,22 @@ const UpdateReview = async (req, res) => {
         }
 
         let totalRating = 0;
-        product.reviews.forEach((rev)=>{
-            totalRating+=rev.rating
+        product.reviews.forEach((rev) => {
+            totalRating += rev.rating
         });
 
-        product.rating = product.reviews.length >0 ? totalRating /product.reviews.length : 0;
+        product.rating = product.reviews.length > 0 ? totalRating / product.reviews.length : 0;
 
-        await product.save({validateBeforeSave: false});
+        await product.save({ validateBeforeSave: false });
         res.status(200).json({
-      success: true,
-      message: "Review submitted successfully",
-      product,
-    });
+            success: true,
+            message: "Review submitted successfully",
+            product,
+        });
 
-    }catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 
 }
 
