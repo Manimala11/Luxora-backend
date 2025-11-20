@@ -48,11 +48,14 @@ const createProduct = async (req, res) => {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ message: "At least one image is required" });
         }
-        const imageUrls = [];
-        for (const file of req.files) {
-            const url = await uploadToCloudinary(file.buffer);
-            imageUrls.push(url);
-        }
+        // const imageUrls = [];
+        // for (const file of req.files) {
+        //     const url = await uploadToCloudinary(file.buffer);
+        //     imageUrls.push(url);
+        // }
+
+        const imageUrls = req.files.map((file) => file.path);
+
         const parsedTags = tags ? JSON.parse(tags) : []
         let parsedSizeStock = [];
         if (sizeStock) {
@@ -117,11 +120,12 @@ const updateProduct = async (req, res) => {
         }
 
         if (req.files && req.files.length > 0) {
-            const imageUrls = [];
-            for (const file of req.files) {
-                const url = await uploadToCloudinary(file.buffer);
-                imageUrls.push(url);
-            }
+            // const imageUrls = [];
+            // for (const file of req.files) {
+            //     const url = await uploadToCloudinary(file.buffer);
+            //     imageUrls.push(url);
+            // }
+            const imageUrls = req.files.map((file) => file.path);
             updateProduct.images = imageUrls;
         }
         else {
