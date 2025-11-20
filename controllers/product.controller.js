@@ -1,7 +1,7 @@
 const Product = require('../models/product.model');
-const fs = require('fs');
 const cloudinary = require('../config/cloudinary');
 const Order = require('../models/order.model')
+const fs = require('fs');
 
 const getProducts = async (req, res) => {
     try {
@@ -25,6 +25,16 @@ const getProduct = async (req, res) => {
     }
 }
 
+const uploadToCloudinary = (fileBuffer, folder = "products") => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream({ folder }, (err, result) => {
+            if (err) reject(err);
+            else resolve(result.secure_url);
+        });
+        stream.end(fileBuffer);
+    });
+};
+
 const createProduct = async (req, res) => {
     try {
         if (req.user.role !== "admin") {
@@ -40,11 +50,8 @@ const createProduct = async (req, res) => {
         }
         const imageUrls = [];
         for (const file of req.files) {
-            const result = await cloudinary.uploader.upload(file.path, {
-                folder: "uploads",
-            });
-            imageUrls.push(result.secure_url);
-            fs.unlinkSync(file.path);
+            const url = await uploadToCloudinary(file.buffer);
+            imageUrls.push(url);
         }
         const parsedTags = tags ? JSON.parse(tags) : []
         let parsedSizeStock = [];
@@ -112,11 +119,8 @@ const updateProduct = async (req, res) => {
         if (req.files && req.files.length > 0) {
             const imageUrls = [];
             for (const file of req.files) {
-                const result = await cloudinary.uploader.upload(file.path, {
-                    folder: "products"
-                });
-                imageUrls.push(result.secure_url);
-                fs.unlinkSync(file.path);
+                const url = await uploadToCloudinary(file.buffer);
+                imageUrls.push(url);
             }
             updateProduct.images = imageUrls;
         }
