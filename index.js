@@ -16,32 +16,16 @@ app.use(cors());
 
 app.use(express.json());
 
-// connectDB();
-
 app.use('/api/auth', authRoute);
-
 app.use('/api/product', productRoute);
-
 app.use('/api/categories', categoryRoute);
-
 app.use('/api/order', orderRoute)
-
 app.use("/api/dashboard", dashboardRoute);
 
-// const PORT = process.env.PORT || 3000;
-
-// app.get("/", (req, res)=>{
-//     res.send("success");
-// });
-
-// app.listen(PORT, ()=>{
-//     console.log(`server running on http://localhost:${PORT}`);
-// });
 const startServer = async () => {
     try {
         await connectDB();
         console.log("MongoDB connected");
-
         const PORT = process.env.PORT || 3000;
         app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);
