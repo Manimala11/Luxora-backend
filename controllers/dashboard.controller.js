@@ -1,12 +1,9 @@
-
 const Product = require("../models/product.model");
 const Order = require("../models/order.model");
 
 const getAdminDashboard = async (req, res) => {
     try {
-        if (req.user.role !== "admin") {
-            return res.status(403).json({ success: false, message: "Access denied" });
-        }
+        if (req.user.role !== "admin") return res.status(403).json({ success: false, message: "Access denied" });
 
         const totalProducts = await Product.countDocuments();
 
@@ -14,10 +11,7 @@ const getAdminDashboard = async (req, res) => {
             .populate('userId', "name email")
             .populate("orderItems.product", "title price")
             .sort({ createdAt: -1 });
-
-
         const totalOrders = orders.length;
-
 
         let totalRevenue = 0;
         orders.forEach(order => {
@@ -51,6 +45,7 @@ const getAdminDashboard = async (req, res) => {
             totalRevenue,
             recentOrders,
         });
+        
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

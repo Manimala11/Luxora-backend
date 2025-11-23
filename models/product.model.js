@@ -17,17 +17,9 @@ const productSchema = new mongoose.Schema(
       required: true
     },
 
-    brand: {
-      type: String
-    },
-
     price: {
       type: Number,
       required: true
-    },
-
-    discount: {
-      type: Number
     },
 
     stock: {
@@ -47,8 +39,6 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
-
-  // size: [String],
 
     sizeStock: [
       {

@@ -16,7 +16,7 @@ app.use(cors());
 
 app.use(express.json());
 
-connectDB();
+// connectDB();
 
 app.use('/api/auth', authRoute);
 
@@ -28,14 +28,31 @@ app.use('/api/order', orderRoute)
 
 app.use("/api/dashboard", dashboardRoute);
 
-const PORT = process.env.PORT || 3000;
+// const PORT = process.env.PORT || 3000;
 
-app.get("/", (req, res)=>{
-    res.send("success");
-});
+// app.get("/", (req, res)=>{
+//     res.send("success");
+// });
 
-app.listen(PORT, ()=>{
-    console.log(`server running on http://localhost:${PORT}`);
-});
+// app.listen(PORT, ()=>{
+//     console.log(`server running on http://localhost:${PORT}`);
+// });
+const startServer = async () => {
+    try {
+        await connectDB();
+        console.log("MongoDB connected");
+
+        const PORT = process.env.PORT || 3000;
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error("Failed to connect to MongoDB", error);
+        process.exit(1);
+    }
+};
+
+startServer();
+
 
 module.exports = app;
