@@ -2,10 +2,11 @@ const jwt = require("jsonwebtoken");
 const auth = require('../models/auth.model')
 
 const authMiddleware = async (req, res, next) => {
-    if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) {
+    const header = req.headers.authorization;
+    if(!header || !header.startsWith("Bearer ")){
         return res.status(401).json({ message: "no token provided" })
     }
-    const token = req.headers.authorization?.split(" ")[1];
+    const token = header?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "no token provided" });
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
@@ -19,7 +20,7 @@ const authMiddleware = async (req, res, next) => {
         req.user = user;
         next();
     } catch (err) {
-        res.status(401).json({ message: err.name === "TokenExpiredError" ? "Token expired" : "Invalid token" })
+       return res.status(401).json({ message: err.name === "TokenExpiredError" ? "Token expired" : "Invalid token" })
     }
 };
 
